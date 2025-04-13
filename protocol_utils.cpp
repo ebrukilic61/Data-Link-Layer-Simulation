@@ -1,4 +1,5 @@
 #include "protocol_utils.h"
+#include "receiver.h"
 
 #include <iostream>
 #include <fstream>
@@ -33,11 +34,6 @@ const double CHECKSUM_ERROR_PROBABILITY = 0.05; // %5 checksum hatası
 const string ACK = "ACK";
 const string NACK = "NACK";
 
-// rastgele sayı üreteci ?? simülasyon kısmı için ai bunu önerdi ama biz başka bir şey düşünürüz
-random_device rd;
-mt19937 gen(rd());
-uniform_real_distribution<> prob_dist(0.0, 1.0);
-
 struct Frame {
     string data;
     string crc;
@@ -66,7 +62,7 @@ long long int toDec(string binData)
 string xorHesapla(string a, string b)
 {
     string result = "";
-    int len = a.length()
+    int len = a.length();
     int i;
     for(i = 0; i < len; i++)
     {
