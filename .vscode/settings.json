@@ -65,7 +65,8 @@
     "array": "cpp",
     "string": "cpp",
     "string_view": "cpp",
-    "ostream": "cpp"
+    "ostream": "cpp",
+    "chrono": "cpp"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }

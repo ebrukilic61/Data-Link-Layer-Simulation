@@ -12,15 +12,16 @@
 #include <sstream>
 #include <iomanip>
 #include <random>
+#define CRC_POLY "10001000000100001" // x^16 + x^12 + x^5 + 1
 //gui kütüphaneleri de gelecek
 using namespace std;
 
 // sabitler
-const string CRC_POLY = "10001000000100001"; // x^16 + x^12 + x^5 + 1
-const string FRAME_FLAG = "01111110"; // Çerçeve başlangıç/bitiş işareti
-const string CHECKSUM_HEADER = "CHECKSUM"; // Checksum paketi için özel başlık
-const int FRAME_SIZE = 100; // Her bir çerçevenin bit cinsinden boyutu
-const int TIMEOUT_MS = 2000; // Timeout süresi (milisaniye)
+//const string CRC_POLY = "10001000000100001";  
+const string FRAME_FLAG = "01111110"; // çerçeve başlangıç/bitiş işareti -> checksum için
+const string CHECKSUM_HEADER = "CHECKSUM"; // checksum paketi için özel başlık
+const int FRAME_SIZE = 100; // her bir çerçevenin bit cinsinden boyutu
+const int TIMEOUT_MS = 2000; // timeout süresi (milisaniye)
 
 // hata simülasyonu olasılıkları
 const double PACKET_LOSS_PROBABILITY = 0.10; // %10 paket kaybı
@@ -41,12 +42,9 @@ struct Frame {
     string data;
     string crc;
     int frameNumber;
-    bool corrupted;
+    string flag;
+    string checksum;
 };
-
-#define CRC_POLY "10001000000100001"
-
-using namespace std;
 
 //dosya okuma işlemlerini senderda mı yapmalıyız yoksa burada mı bilemedim, senderda yapmak daha uygun olabilir
 
@@ -200,9 +198,32 @@ string removeBitStuffing(const string& data) {
     return result;
 }
 
+Frame createFrame(const string& data, int frameNum){
+    Frame fr; //frame structını doldurdum
+    fr.data = data;
+    fr.frameNum = frameNum;
+    fr.crc = crcHesapla(data, CRC_POLY);
+    return fr;
+}
+
+bool receiveFrame(Frame fr){
+    string expectedCRC = crcHesapla(fr.data, CRC_POLY);
+
+    if(expectedCRC == fr.crc){
+        cout << "ack gonderiliyor" <<endl;
+        Receiver rc;
+        rc.ackNo = fr.frameNum;
+        return true;
+    }else{
+        cout<<"receiver: crc hatali"<<endl;
+        return false;
+    }
+}
+
 // checksum paketi oluşturma
 string createChecksumPacket(const string& checksumValue) {
-    
+    string packet = FRAME_FLAG + checksumValue + FRAME_FLAG; //FRAME_FLAG + CHECKSUM_HEADER + checksumValue + FRAME_FLAG; -> checksum header eklenmeli mi bilemedim?
+    return packet;
 }
 
 string corruptData(const string& data) { //simülasyon kısmı için datayı bozmamız lazım
