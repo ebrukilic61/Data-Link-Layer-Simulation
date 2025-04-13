@@ -10,7 +10,7 @@ class Sender {
 public:
     Sender();
     void sendData(const string& message); //frameleri sıraya koyup gönderme işlemi
-    //createFrames çağrılır, oluşan frame listesi alınır ve her bir frame gönderilir sendFrame de burada çağrılır her bir frame için
+    bool readFileAndCreateFrames(const string &fileName);//createFrames çağrılır, oluşan frame listesi alınır ve her bir frame gönderilir sendFrame de burada çağrılır her bir frame için
 private:
     void sendFrame(const string& frameData, int frameNumber); //stop and wait protocolü
     vector<Frame> createFrames(const string& data);
