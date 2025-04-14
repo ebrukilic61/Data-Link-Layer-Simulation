@@ -67,7 +67,8 @@
     "string_view": "cpp",
     "ostream": "cpp",
     "chrono": "cpp",
-    "format": "cpp"
+    "format": "cpp",
+    "fstream": "cpp"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }

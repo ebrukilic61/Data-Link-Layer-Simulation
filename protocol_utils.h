@@ -22,8 +22,9 @@ struct Frame {
     string data;
     string crc;
     int frameNumber;
-    string flag;
     string checksum;
+    int frameSize; //burada orijinal sizedan bahsediyorum, padding durumunu gözetmek için yazıldı
+    bool isPadded;
 };
 
 class ProtocolUtils {
