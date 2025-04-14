@@ -1,6 +1,5 @@
 #include "protocol_utils.h"
 #include "receiver.h"
-
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -17,13 +16,6 @@
 //gui kütüphaneleri de gelecek
 using namespace std;
 
-// sabitler
-//const string CRC_POLY = "10001000000100001";  
-const string FRAME_FLAG = "01111110"; // çerçeve başlangıç/bitiş işareti -> checksum için
-const string CHECKSUM_HEADER = "CHECKSUM"; // checksum paketi için özel başlık
-const int FRAME_SIZE = 100; // her bir çerçevenin bit cinsinden boyutu
-const int TIMEOUT_MS = 2000; // timeout süresi (milisaniye)
-
 // hata simülasyonu olasılıkları
 const double PACKET_LOSS_PROBABILITY = 0.10; // %10 paket kaybı
 const double DATA_CORRUPTION_PROBABILITY = 0.20; // %20 veri bozulması
@@ -34,32 +26,13 @@ const double CHECKSUM_ERROR_PROBABILITY = 0.05; // %5 checksum hatası
 const string ACK = "ACK";
 const string NACK = "NACK";
 
-struct Frame {
-    string data;
-    string crc;
-    int frameNumber;
-    string flag;
-    string checksum;
-};
-
 //dosya okuma işlemlerini senderda mı yapmalıyız yoksa burada mı bilemedim, senderda yapmak daha uygun olabilir
 
-string charToBinary(char c) {
+string ProtocolUtils::charToBinary(char c) {
     return bitset<8>(c).to_string();
 }
 
-long long int toDec(string binData) 
-{ 
-    long long int num = 0; 
-    int i;
-    for (i = 0; i < binData.length(); i++) { 
-        if (binData.at(i) == '1') 
-            num += 1 << (binData.length() - i - 1); 
-    }
-    return num; 
-} 
-
-string xorHesapla(string a, string b)
+string ProtocolUtils::xorHesapla(string a, string b)
 {
     string result = "";
     int len = a.length();
@@ -72,7 +45,7 @@ string xorHesapla(string a, string b)
 }
 
 //CRC hesaplama: data ve key (polinom degeri) -> pol sbt ve binary halinde olacak
-string crcHesapla(string data, string key)
+string ProtocolUtils::crcHesapla(string data, string key)
 {
     int keyLen = key.length();
     int i;
@@ -93,7 +66,7 @@ string crcHesapla(string data, string key)
 }
 
 // Checksum hesaplama
-string checksum(string crcCode, int n) { //doğruluğunu kontrol etmem lazım, önceden yazmıştım bu kodu
+string ProtocolUtils::checksum(string crcCode, int n) { //doğruluğunu kontrol etmem lazım, önceden yazmıştım bu kodu
     int overflow = 0;
     string firstPart = crcCode.substr(0, n);
     string secondPart = crcCode.substr(n, n);
@@ -132,7 +105,7 @@ string checksum(string crcCode, int n) { //doğruluğunu kontrol etmem lazım, �
 }
 
 // binary'den Hexadecimal'e dönüştürme
-string binaryToHex(string binary) {
+string ProtocolUtils::binaryToHex(string binary) {
     stringstream ss;
     ss << hex << setfill('0');
     
@@ -152,7 +125,7 @@ string binaryToHex(string binary) {
 }
 
 // bit stuffing uygulama -> stuffing işlemleri için ai yardım etti, kontrol etmem lazım
-string applyBitStuffing(const string& data) {
+string ProtocolUtils::applyBitStuffing(const string& data) {
     string result = "";
     int consecutive_bit = 0; //ardışık bitler için
     
@@ -173,7 +146,7 @@ string applyBitStuffing(const string& data) {
 }
 
 // bit stuffing kaldırma
-string removeBitStuffing(const string& data) {
+string ProtocolUtils::removeBitStuffing(const string& data) {
     string result = "";
     int consecutive_bit = 0;
     
@@ -194,15 +167,15 @@ string removeBitStuffing(const string& data) {
     return result;
 }
 
-Frame createFrame(const string& data, int frameNum){
+Frame ProtocolUtils::createFrame(const string& data, int frameNum){
     Frame fr; //frame structını doldurdum
     fr.data = data;
-    fr.frameNum = frameNum;
+    fr.frameNumber = frameNum;
     fr.crc = crcHesapla(data, CRC_POLY);
     return fr;
 }
-
-bool receiveFrame(Frame fr){
+/*
+bool ProtocolUtils::receiveFrame(Frame fr){
     string expectedCRC = crcHesapla(fr.data, CRC_POLY);
 
     if(expectedCRC == fr.crc){
@@ -215,13 +188,9 @@ bool receiveFrame(Frame fr){
         return false;
     }
 }
-
+*/
 // checksum paketi oluşturma
-string createChecksumPacket(const string& checksumValue) {
+string ProtocolUtils::createChecksumPacket(const string& checksumValue) {
     string packet = FRAME_FLAG + checksumValue + FRAME_FLAG; //FRAME_FLAG + CHECKSUM_HEADER + checksumValue + FRAME_FLAG; -> checksum header eklenmeli mi bilemedim?
     return packet;
-}
-
-string corruptData(const string& data) { //simülasyon kısmı için datayı bozmamız lazım
-    
 }

@@ -1,6 +1,5 @@
 #include "sender.h"
 #include "protocol_utils.h"
-#include "sender.h"
 #include <iostream>
 #include <fstream>
 #include <bitset>
@@ -39,25 +38,25 @@ bool Sender::readFileAndCreateFrames(const string &fileName) { // dosyadan veri 
             currentFrame = currentFrame.substr(FRAME_SIZE);
         }
     }
-
     
     if (!currentFrame.empty()) { //son frame tamamlanmamışsa
-        //while (currentFrame.size() < FRAME_SIZE) {
-            //currentFrame.push_back('0'); // eksik kalan bitler 0 ile tamamlanır
-        //}
+        while (currentFrame.size() < FRAME_SIZE) {
+            currentFrame.push_back('0'); // eksik kalan bitler 0 ile tamamlanır
+        }
         Frame f;
         f.data = currentFrame;
         frames.push_back(f);
     }
 
     for (i = 0; i < frames.size(); i++) {
-        cout << "Frame " << i + 1 << ": " << frames[i].data << endl;
+        cout << "Frame " << i << ": " << frames[i].data << endl; //frame i+1 diyordu ama biz bunu i olarak kaydediyoruz bu nedenle değiştirdim
     }
 
     file.close();
     return true;
 }
 
+/*
 string Sender::xorHesapla(string a, string b)
 {
     string result = "";
@@ -128,11 +127,12 @@ string Sender::checksum(string crcCode, int n) { //doğruluğunu kontrol etmem l
 
     return result;
 }
+*/
 
 void Sender::sendFrame(const string& frameData, int frameNumber){  //crc kod dönüşümü
     cout << "Frame gonderimi basliyor..." << endl;
-    
-    string crcKodu = crcHesapla(frameData, CRC_POLY);
+    ProtocolUtils pr;
+    string crcKodu = pr.crcHesapla(frameData, CRC_POLY);
     
     Frame gonderilecekFrame;
     gonderilecekFrame.data = frameData;
