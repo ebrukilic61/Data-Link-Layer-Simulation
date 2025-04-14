@@ -103,14 +103,12 @@ void Sender::sendFrame(int frameNumber) {
     cout << "Frame " << frameNumber << " icin CRC kodu: " << crcKodu << endl;
     
     /*
-    int retryCount = 0;
     bool ackReceived = false;
     
-    while (!ackReceived && retryCount < MAX_RETRANSMISSION) {
+    while (!ackReceived) {
         // frame gönderme simülasyonu
         if (!simulateSendFrame(frames[frameNumber])) {
             cout << "Frame " << frameNumber << " gönderiminde hata oluştu." << endl;
-            retryCount++;
             continue;
         }
         
@@ -120,7 +118,6 @@ void Sender::sendFrame(int frameNumber) {
         if (!ackReceived) {
             cout << "Timeout: Frame " << frameNumber << " için ACK alınamadı." << endl;
             cout << "Frame " << frameNumber << " yeniden gönderiliyor... (Deneme: " << retryCount + 1 << ")" << endl;
-            retryCount++;
         }
     }
     
@@ -155,6 +152,7 @@ bool Sender::simulateSendFrame(const Frame& frame) {
 int main() {
     string filename;
     Sender sender;
+    ProtocolUtils pr;
 
     cout << "Dosya adini girin: ";
     cin >> filename;
@@ -165,6 +163,13 @@ int main() {
             sender.sendFrame(i);
         }
     }
+
+    string chksm;
+    chksm = pr.calculateChecksum(sender.frames, sender.frames.size());
+
+    cout <<"deneme crc: "<<sender.frames[0].crc<<endl;
     
+    cout<<"deneme checksum sonucu: "<<chksm<<endl;
+
     return 0;
 }

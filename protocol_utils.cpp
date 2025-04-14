@@ -65,43 +65,90 @@ string ProtocolUtils::crcHesapla(string data, string key)
     return rem;
 }
 
-// Checksum hesaplama
-string ProtocolUtils::checksum(string crcCode, int n) { //doğruluğunu kontrol etmem lazım, önceden yazmıştım bu kodu
-    int overflow = 0;
-    string firstPart = crcCode.substr(0, n);
-    string secondPart = crcCode.substr(n, n);
+string ProtocolUtils::binaryAddStrings(const string& a, const string& b) {
+    string result = "";
+    int carry = 0;
+    int n = max(a.size(), b.size());
 
-    string result(n, '0');
+    string aPadded = string(n - a.size(), '0') + a;
+    string bPadded = string(n - b.size(), '0') + b;
 
     for (int i = n - 1; i >= 0; i--) {
-        int bit1 = firstPart[i] - '0';  // '1' → 1, '0' → 0
-        int bit2 = secondPart[i] - '0';
-        
-        int sum = bit1 + bit2 + overflow;
-        result[i] = (sum % 2) + '0'; // binary olarak ekle ? chat neden böyle düzeltti?
-        overflow = sum / 2;  //taşma varsa 1 olur
+        int bitA = aPadded[i] - '0';
+        int bitB = bPadded[i] - '0';
+        int sum = bitA + bitB + carry;
+
+        result = char((sum % 2) + '0') + result;
+        carry = sum / 2; //taşma varsa 1 olur
     }
 
-    //overflow varsa + 1
-    if (overflow == 1) {
-        result = "1" + result;
-    }
-
-    // checksum'a +1 ekleme işlemi: 
-    for (int i = result.length() - 1; i >= 0; i--) {
-        if (result[i] == '0') {
-            result[i] = '1';
-            break; //exit mi kullanmalıyım break yerine?
-        } else {
-            result[i] = '0';
-        }
-    }
-
-    if(result.length()>n){
-        result = result.substr(result.length()-n, n); //taşan biti almamak için yazdım
-    }
+    if (carry == 1)
+        result = '1' + result;
 
     return result;
+}
+
+/*
+string ProtocolUtils::calculateChecksum(vector<Frame>fr,int frmNum){
+    int i;
+    int n = 8; //8 bit olmalı demişti hoca
+    string concat_data = "";
+    string sum = "00000000";
+    
+    for(int i = 0; i<frmNum-1;i++){
+        concat_data += fr[i].crc;
+    }
+    concat_data += fr[frmNum-1].crc.substr(0,fr[frmNum-1].frameSize);
+
+    //concat olan crc kodunu 8 bitlik parçalara bölük toplama işlemi:
+    
+    for(size_t i = 0; i<concat_data.size();i+=8){
+        string chunk = concat_data.substr(i,8);
+        if(chunk.length()<8){
+            chunk = string(8 - chunk.length(), '0') + chunk; //padding gerekiyorsa başa (msb) 0 eklenir
+        }
+        sum = binaryAddStrings(sum, chunk);
+    }
+
+    sum = binaryAddStrings(sum, "00000001");
+
+    if(sum.length()>8){
+        sum = sum.substr(sum.length()-8,8);
+    }
+    return sum;
+}
+*/
+
+string ProtocolUtils::calculateChecksum(vector<Frame> fr, int frmNum) {
+    int n = 8;  // 8-bitlik parça
+    string concat_data = "";
+    string sum = "00000000"; // Başlangıçta sum 8-bit olarak 0
+
+    // Tüm frame'lerin CRC'lerini concat_data'ya ekleyelim
+    for (int i = 0; i < frmNum; i++) {
+        concat_data += fr[i].crc.substr(0, fr[i].frameSize);  // CRC'yi frame boyutuna göre alıyoruz
+    }
+
+    // concat_data'yı 8-bitlik parçalara ayırıp toplama işlemi yapalım
+    for (size_t i = 0; i < concat_data.size(); i += 8) {
+        string chunk = concat_data.substr(i, 8);  // 8-bitlik parçayı alıyoruz
+        if (chunk.length() < 8) {
+            chunk = string(8 - chunk.length(), '0') + chunk;  // Eğer eksikse başa 0 ekleyip tamamlıyoruz
+        }
+
+        // sum ile bu 8-bitlik chunk'ı topluyoruz
+        sum = binaryAddStrings(sum, chunk);
+    }
+
+    // Son adımda 1 ekliyoruz
+    sum = binaryAddStrings(sum, "00000001");
+
+    // Eğer toplamda 8 bitten uzun bir sonuç olduysa, sadece son 8 bit kalacak şekilde kesiyoruz
+    if (sum.length() > 8) {
+        sum = sum.substr(sum.length() - 8, 8);
+    }
+
+    return sum;
 }
 
 // binary'den Hexadecimal'e dönüştürme

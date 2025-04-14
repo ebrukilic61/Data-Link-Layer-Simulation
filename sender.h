@@ -15,12 +15,7 @@ public:
     //void sendFrame(const string& frameData, int frameNumber); //stop and wait protocolü
     void sendFrame(int frameNumber);
     vector<Frame> createFrame(const string& data);
-    //string crcHesapla(string data, string key);
-    //string checksum(string crcCode, int n);
-    //string xorHesapla(string a, string b);
-
     vector<Frame> frames;
-
 private:
     bool waitForACK(int frameNumber);
     //bool simulateSendFrame(const Frame& frame);

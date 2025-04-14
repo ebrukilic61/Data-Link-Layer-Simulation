@@ -32,7 +32,9 @@ public:
     string charToBinary(char c);
     string xorHesapla(string a, string b);
     string crcHesapla(string data, string key);
-    string checksum(string crcCode, int n);
+    //string checksum(string crcCode, int n);
+    string binaryAddStrings(const string& a, const string& b);
+    string calculateChecksum(vector<Frame>fr,int frameSize); //yeni checksum kodu
     string binaryToHex(string binary);
     string applyBitStuffing(const string& data);
     string removeBitStuffing(const string& data);
