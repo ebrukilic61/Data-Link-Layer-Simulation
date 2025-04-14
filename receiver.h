@@ -11,6 +11,7 @@ public:
     void receiveFrame(const string& frameData);
     bool verifyChecksum(const string& receivedChecksum, const vector<string>& crcList);
 private:
+    vector<Frame> receivedFrames;
     vector<string> receivedCrc;
 };
 
