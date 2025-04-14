@@ -101,7 +101,19 @@ void Sender::sendFrame(int frameNumber) {
     
     cout << "Frame " << frameNumber << " gonderiliyor..." << endl;
     cout << "Frame " << frameNumber << " icin CRC kodu: " << crcKodu << endl;
-    
+    // Receiver sınıfına gönderilen frame’i ilet
+    bool ack = receiver.receiveFrame(frames[frameNumber]);
+
+    // ACK/NACK sonucu çıktı ver
+    if (ack) {
+        cout << "Frame " << frameNumber << " başarıyla alındı ve ACK gönderildi." << endl;
+    } else {
+        cout << "Frame " << frameNumber << " hata ile alındı ve NACK gönderildi." << endl;
+        
+        // Eğer NACK alırsak, doğru frame'i tekrar gönder
+        cout << "Frame " << frameNumber << " doğru olarak yeniden gönderiliyor..." << endl;
+        sendFrame(frameNumber, receiver);  // Yeniden doğru frame gönderimi
+    }
     /*
     bool ackReceived = false;
     
