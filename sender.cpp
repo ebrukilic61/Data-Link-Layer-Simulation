@@ -1,4 +1,5 @@
 #include "sender.h"
+#include "receiver.h"
 #include "protocol_utils.h"
 #include <iostream>
 #include <fstream>
@@ -12,9 +13,9 @@
 
 using namespace std;
 
-Sender::Sender() : allFramesSent(false) {}
+Sender::Sender() : allFramesSent(false), currentFrameIndex(0) {}
 
-bool Sender::readFileAndCreateFrames(const string &fileName) { // dosyadan veri okuma ve çerçevelere bölme işlemi
+bool Sender::readFileAndCreateFrames(const string &fileName) {
     int i;
     ifstream file;
     frames.clear();
@@ -44,7 +45,7 @@ bool Sender::readFileAndCreateFrames(const string &fileName) { // dosyadan veri 
         }
     }
     
-    if (!currentFrame.empty()) { //son frame tamamlanmamışsa
+    if (!currentFrame.empty()) { // son frame tamamlanmamışsa
         Frame f;
         f.frameSize = currentFrame.size();
         f.isPadded = true;
@@ -56,103 +57,143 @@ bool Sender::readFileAndCreateFrames(const string &fileName) { // dosyadan veri 
         frames.push_back(f);
     }
 
+    cout << "Toplam " << frames.size() << " frame olusturuldu." << endl;
     for (i = 0; i < frames.size(); i++) {
-        cout << "Frame " << i << ": " << frames[i].data << endl; //frame i+1 diyordu ama biz bunu i olarak kaydediyoruz bu nedenle değiştirdim
+        cout << "Frame " << i << " hazirlandi. Boyut: " << frames[i].frameSize << " bit" << endl;
     }
 
     file.close();
     return true;
 }
 
-/*
-void Sender::sendFrame(const string& frameData, int frameNumber){  //crc kod dönüşümü
-    cout << "Frame gonderimi basliyor..." << endl;
-    ProtocolUtils pr;
-    string crcKodu = pr.crcHesapla(frameData, CRC_POLY);
-    
-    Frame gonderilecekFrame;
-    gonderilecekFrame.data = frameData;
-    gonderilecekFrame.crc = crcKodu;
-    gonderilecekFrame.frameNumber = frameNumber;
-
-    cout<<"frame "<<frameNumber<<" icin crc kodu olusturuldu: "<<crcKodu<<endl;
-}
-*/
-
-void Sender::sendFrame(int frameNumber) {
+void Sender::sendFrame(int frameNumber, Receiver& receiver) {
     if (frameNumber >= frames.size()) {
         cerr << "Hata: Geçersiz frame numarası!" << endl;
+        return;
     }
     
     ProtocolUtils pr;
     string crcKodu;
     string frameData = frames[frameNumber].data;
     
-    if(frames[frameNumber].isPadded == true){
-        crcKodu = pr.crcHesapla(frameData.substr(0,frames[frameNumber].frameSize),CRC_POLY); //datayı tuttuğumuz orijinal frame sizeına göre alıp crc kodunu hesaplıyoruz
-        //cntrl için cout:
-        cout << "padded frame boyutu: "<<frames[frameNumber].frameSize << " | crc kodu: "<<crcKodu<<endl;
-    }else{
+    // CRC kodunu hesapla ve frame'e ekle
+    if(frames[frameNumber].isPadded == true) {
+        crcKodu = pr.crcHesapla(frameData.substr(0, frames[frameNumber].frameSize), CRC_POLY);
+        cout << "Padded frame boyutu: " << frames[frameNumber].frameSize << " | CRC kodu: " << crcKodu << endl;
+    } else {
         crcKodu = pr.crcHesapla(frameData, CRC_POLY);
     }
 
     frames[frameNumber].crc = crcKodu;
     frames[frameNumber].frameNumber = frameNumber;
     
-    cout << "Frame " << frameNumber << " gonderiliyor..." << endl;
-    cout << "Frame " << frameNumber << " icin CRC kodu: " << crcKodu << endl;
+    cout << "\n--- Frame " << frameNumber << " icin gonderim islemi basladi ---" << endl;
+    cout << "CRC kodu hesaplandi: " << crcKodu << endl;
     
-    /*
     bool ackReceived = false;
+    int gonderimCount = 1;
     
-    while (!ackReceived) {
-        // frame gönderme simülasyonu
-        if (!simulateSendFrame(frames[frameNumber])) {
-            cout << "Frame " << frameNumber << " gönderiminde hata oluştu." << endl;
-            continue;
+    while (!ackReceived) { //ack gelene kadar devam eder gönderim
+        cout << "\nFrame " << frameNumber << " gonderim denemesi: " << gonderimCount << endl;
+        
+        cout << "Frame " << frameNumber << " gonderiliyor..." << endl;
+        this_thread::sleep_for(chrono::milliseconds(200));
+        
+        // %10 olasılıkla frame iletim sırasında kaybolabilir
+        int random = rand() % 100;
+        bool frameLost = (random < 10);
+        
+        bool receiverGotFrame = false;
+        
+        if (frameLost) {
+            cout << "HATA: Frame " << frameNumber << " iletimde KAYBOLDU" << endl;
+        } else {
+            cout << "Frame " << frameNumber << " basariyla karsi tarafa iletildi." << endl;
+            
+            // frame başarıyla iletildi, receiver'dan cevap al
+            receiverGotFrame = receiver.receiveFrame(frames[frameNumber]);
         }
         
-        // ACK almayı bekle
-        ackReceived = waitForAck(frameNumber);
+        // ACK/NACK alınması simülasyonu
+        if (!frameLost) {
+            cout << "ACK/NACK bekleniyor... (Timeout: " << TIMEOUT << "ms)" << endl;
+            
+            // bekleme animasyonu
+            for (int i = 0; i < 3; i++) {
+                cout << ".";
+                cout.flush();
+                this_thread::sleep_for(chrono::milliseconds(200));
+            }
+            cout << endl;
+            
+            // %15 olasılıkla ACK/NACK yolda kaybolur (simülasyon)
+            random = rand() % 100;
+            bool ackLost = (random < 15);
+            
+            if (ackLost) {
+                cout << "TIMEOUT: ACK/NACK yolda KAYBOLDU!" << endl;
+                ackReceived = false;
+            } else {
+                // ACK/NACK başarıyla alındı
+                if (receiverGotFrame) {
+                    cout << "ACK basariyla alindi!" << endl;
+                    ackReceived = true;
+                } else {
+                    cout << "NACK alindi! Frame CRC hatasi iceriyor." << endl;
+                    ackReceived = false;
+                }
+            }
+        } else {
+            // Frame kaybolduysa zaten ACK gelmeyecek
+            ackReceived = false;
+        }
         
         if (!ackReceived) {
-            cout << "Timeout: Frame " << frameNumber << " için ACK alınamadı." << endl;
-            cout << "Frame " << frameNumber << " yeniden gönderiliyor... (Deneme: " << retryCount + 1 << ")" << endl;
+            cout << "Frame " << frameNumber << " yeniden gonderilecek..." << endl;
+            this_thread::sleep_for(chrono::milliseconds(500)); // Tekrar gönderim öncesi bekleme
+            gonderimCount++;
         }
     }
     
-    if (ackReceived) {
-        cout << "Frame " << frameNumber << " başarıyla gönderildi ve ACK alındı." << endl;
-        return true;
-    } else {
-        cout << "Frame " << frameNumber << " için maksimum yeniden gönderim sayısına ulaşıldı!" << endl;
-        return false;
+    cout << "Frame " << frameNumber << " basariyla gonderildi ve onaylandi." << endl;
+    cout << "Toplam gonderim denemesi: " << gonderimCount << endl;
+}
+
+// stop-and-Wait protokolü ile tüm frameleri gönderen metod -> tum simulasyonu buradan yonetebiliriz
+void Sender::sendAllFrames(Receiver& receiver) {
+    if (frames.empty()) {
+        cerr << "Gonderilecek frame yok!" << endl;
+        return;
     }
-    */
-}
-
-bool Sender::waitForACK(int frameNumber) {
-    // burada ACK alma simülasyonu yapıyoruz
-    cout << "ACK bekleniyor..." << endl;
     
-    // timeout
-    this_thread::sleep_for(chrono::milliseconds(rand() % TIMEOUT));
+    cout << "\n=== STOP-AND-WAIT PROTOKOLU BASLATILIYOR ===\n" << endl;
+    cout << "Toplam gonderilecek frame sayisi: " << frames.size() << endl;
+    cout << "ACK timeout: " << TIMEOUT << "ms\n" << endl;
     
-    // %85 ACK alma başarı oranı, %15 karşı tarafa ulaşmaz
-    int random = rand() % 100;
-    return (random < 85);
+    for (size_t i = 0; i < frames.size(); i++) {
+        cout << "\n>>>>> Frame " << i << "/" << (frames.size()-1) << " gonderiliyor <<<<<" << endl;
+        
+        sendFrame(i, receiver); //burada cagirdim
+        
+        // Bir sonraki frame'e geçmeden önce kısa bir bekleme
+        if (i < frames.size() - 1) {
+            cout << "\nBir sonraki frame'e geciliyor..." << endl;
+            this_thread::sleep_for(chrono::milliseconds(500));
+        }
+    }
+    
+    allFramesSent = true;
+    cout << "\nTum frameler basariyla gonderildi!" << endl;
+    
+    // Alıcı tarafta dosya oluştur
+    receiver.finalizeReception();
 }
-
-/*
-bool Sender::simulateSendFrame(const Frame& frame) {
-
-}
-*/
 
 int main() {
     string filename;
     Sender sender;
     ProtocolUtils pr;
+    Receiver r;
 
     cout << "Dosya adini girin: ";
     cin >> filename;
@@ -160,8 +201,10 @@ int main() {
     if(sender.readFileAndCreateFrames(filename)){
         int i;
         for(i=0;i<sender.frames.size();i++){
-            sender.sendFrame(i);
+            //sender.sendFrame(i, r);
         }
+
+        sender.sendAllFrames(r);
     }
 
     string chksm;
