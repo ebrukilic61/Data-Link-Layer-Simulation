@@ -73,7 +73,7 @@ void Receiver::finalizeReception() {
 
     cout << "Tum frameler alindi." << endl;
     cout << "Checksum: " << checks << endl;
-}
+
     string checks=pr.checksum("1100101111010110",8);
 
     cout << "Tum frameler alindi." << endl;
