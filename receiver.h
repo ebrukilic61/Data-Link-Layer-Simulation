@@ -40,7 +40,6 @@ public:
     void finalizeReception();                // Bit ve karakter dosyası + checksum hesaplar
 
 private:
->>>>>>> 17d2921ff034cf89ab316e430c76362377481623
     std::vector<Frame> receivedFrames;      // Alınan frame'leri saklamak için vektör
 };
 
