@@ -3,10 +3,6 @@
 #include <iostream>   // cout ve endl için
 #include <fstream>    // ofstream için
 #include <bitset>     // bitset için
-<<<<<<< HEAD
-=======
-
->>>>>>> 17d2921ff034cf89ab316e430c76362377481623
 
 #define CRC_POLY "10001000000100001"
 #define FRAME_SIZE 100
@@ -40,10 +36,7 @@ bool Receiver::receiveFrame(const Frame& frame) {
 
 void Receiver::finalizeReception() {
     string allBits;
-<<<<<<< HEAD
     Receiver receiver;
-=======
->>>>>>> 17d2921ff034cf89ab316e430c76362377481623
     // Bütün doğru gelen frame'lerin verisini birleştiriyoruz
     for (const auto& frame : receivedFrames) {
         allBits += frame.data;
@@ -76,16 +69,13 @@ void Receiver::finalizeReception() {
     ProtocolUtils pr;
 
     // Checksum hesaplama
-<<<<<<< HEAD
     string checks=pr.calculateChecksum(receiver.receivedFrames,receiver.receivedFrames.size());
 
     cout << "Tum frameler alindi." << endl;
     cout << "Checksum: " << checks << endl;
 }
-=======
     string checks=pr.checksum("1100101111010110",8);
 
     cout << "Tum frameler alindi." << endl;
     cout << "Checksum: " << checks << endl;
 }
->>>>>>> 17d2921ff034cf89ab316e430c76362377481623
