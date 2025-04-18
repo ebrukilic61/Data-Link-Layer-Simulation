@@ -17,9 +17,7 @@ public:
     void sendFrame(int frameNumber, Receiver& receiver);
     void sendAllFrames(Receiver& receiver);
     string transformFrame(const Frame& frameData);
-
-    //bool waitForACK(int frameNumber);
-    //void simulateFrameTransmission(int frameNumber);
+    void sendChecksumFrame(Frame &f, Receiver& receiver);
     vector<Frame> frames;
 private:
     bool waitForACK(int frameNumber);

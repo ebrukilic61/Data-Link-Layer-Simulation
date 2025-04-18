@@ -10,6 +10,7 @@ public:
     Receiver();
     bool receiveFrame(string fullFrame);   // CRC kontrolü yaparak ACK/NACK gönderir
     void finalizeReception();                // Bit ve karakter dosyası + checksum hesaplar
+    bool receiveChecksumFrame(string frameChk);
 
 private:
     std::vector<Frame> receivedFrames;      // Alınan frame'leri saklamak için vektör

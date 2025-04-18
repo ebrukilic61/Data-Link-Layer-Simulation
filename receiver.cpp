@@ -1,4 +1,5 @@
 #include "receiver.h"
+#include "sender.h"
 #include "protocol_utils.h"
 #include <iostream>
 #include <fstream>
@@ -59,6 +60,28 @@ bool Receiver::receiveFrame(string fullFrame) {
         return true;
     } else {
         cout << "CRC hatali. NACK gonderildi." << endl;
+        return false;
+    }
+}
+
+bool Receiver::receiveChecksumFrame(string fullFrame){
+    ProtocolUtils pr;
+    string senderAddr = fullFrame.substr(0,7);
+    string frameNum = fullFrame.substr(7,1);
+    string receivedChecksum = fullFrame.substr(8);
+    
+    cout << "Sender address: " << senderAddr << endl;
+    cout << "Frame number: " << frameNum << endl;
+    cout << "Received checksum: " << receivedChecksum << endl;
+
+    string calculatedChecksum = pr.calculateChecksum(receivedFrames, receivedFrames.size());
+
+    cout << "Calculated checksum: " << calculatedChecksum << endl;
+    cout << "Frame alindi. Checksum kontrolu yapiliyor..." << endl;
+
+    if (calculatedChecksum == receivedChecksum) {
+        return true;
+    } else {
         return false;
     }
 }
@@ -137,7 +160,7 @@ void Receiver::finalizeReception() {
         cerr << "Karakter dosyasi olusturulamadi!" << endl;
     }
     
-    // Checksum hesapla ve kontrol et
+    // checksum hesapla ve kontrol et
     ProtocolUtils pr;
     string checksum = pr.calculateChecksum(receivedFrames, receivedFrames.size());
     

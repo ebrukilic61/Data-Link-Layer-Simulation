@@ -132,9 +132,9 @@ void Sender::sendFrame(int fNum, Receiver& receiver) {
     bool isPadded = frames[fNum].isPadded;
     int actualSize = frames[fNum].frameSize;
 
-    // Hata oluşturulsun mu? (örnek: %20 ihtimal)
-    //bool bilincliHata = (rand() % 100) < 20;
-    bool bilincliHata = true;
+    // %20 ihtimal
+    bool bilincliHata = (rand() % 100) < 20;
+    //bool bilincliHata = true;
     bool ackReceived = false;
     int gonderimCount = 1;
     bool ilkDeneme = true;
@@ -218,7 +218,7 @@ void Sender::sendFrame(int fNum, Receiver& receiver) {
     cout << "Toplam gonderim denemesi: " << gonderimCount << endl;
 }
 
-// stop-and-Wait protokolü ile tüm frameleri gönderen metod -> tum simulasyonu buradan yonetebiliriz
+// stop-and-wait protokolü ile tüm frameleri gönderen metod -> tum simulasyonu buradan yonetebiliriz
 void Sender::sendAllFrames(Receiver& receiver) {
     if (frames.empty()) {
         cerr << "Gonderilecek frame yok!" << endl;
@@ -232,7 +232,7 @@ void Sender::sendAllFrames(Receiver& receiver) {
     for (size_t i = 0; i < frames.size(); i++) {
         cout << "\n>>>>> Frame " << i << "/" << (frames.size()-1) << " gonderiliyor <<<<<" << endl;
         
-        sendFrame(i, receiver); //burada cagirdim
+        sendFrame(i, receiver); //frame gönderim işlemini (simülasyonlar vs) burada cagirdim
         
         // Bir sonraki frame'e geçmeden önce kısa bir bekleme
         if (i < frames.size() - 1) {
@@ -243,8 +243,28 @@ void Sender::sendAllFrames(Receiver& receiver) {
     
     allFramesSent = true;
     cout << "\nTum frameler basariyla gonderildi!" << endl;
+
+    ProtocolUtils pr;
+    string checksum = pr.calculateChecksum(frames, frames.size());
     
-    // Alıcı tarafta dosya oluştur
+    Frame checksumFrame;
+    checksumFrame.checksum = checksum;
+    //checksumFrame.result = checksum;  // checksum için bit stuffing yapmadım
+    checksumFrame.frameSize = checksum.length();
+    checksumFrame.addressSend = "0000001";
+    //checksumFrame.addressRec = "0000010";
+    checksumFrame.frameNumber = "0";
+    checksumFrame.fNum = frames.size();
+
+    string recChecksumFrame = checksumFrame.addressSend + checksumFrame.frameNumber + checksumFrame.checksum;
+
+    bool recChkTrue = receiver.receiveChecksumFrame(recChecksumFrame);
+
+    if(recChkTrue){
+        cout << "Checksum dogru, Veri gonderimi basariyla sona erdi." << endl;
+    }else{
+        cout<<"Cheksum yanlis, veri gonderimi bastan yapilacak"<<endl;
+    }
     receiver.finalizeReception();
 }
 
@@ -273,5 +293,6 @@ int main() {
     
     cout<<"deneme checksum sonucu: "<<chksm<<endl;
     */
+
     return 0;
 }
