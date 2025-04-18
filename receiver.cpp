@@ -66,20 +66,31 @@ bool Receiver::receiveFrame(string fullFrame) {
 
 bool Receiver::receiveChecksumFrame(string fullFrame){
     ProtocolUtils pr;
-    string senderAddr = fullFrame.substr(0,7);
-    string frameNum = fullFrame.substr(7,1);
-    string receivedChecksum = fullFrame.substr(8);
-    
+    size_t startFlagPos = fullFrame.find(FRAME_FLAG);
+    size_t endFlagPos = fullFrame.rfind(FRAME_FLAG);
+
+    if (startFlagPos == string::npos || endFlagPos == string::npos || startFlagPos == endFlagPos) {
+        cout << "Gecerli iki flag de bulunamadi!" << endl;
+        return false;
+    }
+
+    // flag'ler arası veri -> checksum verisi
+    string frameContent = fullFrame.substr(startFlagPos + 8, endFlagPos - (startFlagPos + 8));
+
+    // Header: 7 bit adres + 1 bit frame numarası
+    string senderAddr = frameContent.substr(0, 7);
+    string frameNum = frameContent.substr(7, 1);
+    string receivedChecksum = frameContent.substr(8);
+
     cout << "Sender address: " << senderAddr << endl;
     cout << "Frame number: " << frameNum << endl;
     cout << "Received checksum: " << receivedChecksum << endl;
 
+    string rcCheck = pr.removeBitStuffing(receivedChecksum);
+
     string calculatedChecksum = pr.calculateChecksum(receivedFrames, receivedFrames.size());
 
-    cout << "Calculated checksum: " << calculatedChecksum << endl;
-    cout << "Frame alindi. Checksum kontrolu yapiliyor..." << endl;
-
-    if (calculatedChecksum == receivedChecksum) {
+    if (calculatedChecksum == rcCheck) {
         return true;
     } else {
         return false;
@@ -100,7 +111,7 @@ void Receiver::finalizeReception() {
     for (size_t i = 0; i < receivedFrames.size(); i++) {
         const Frame& frame = receivedFrames[i];
         
-        // Padded frame ise sadece gerçek veriyi al
+        // padded frame ise sadece gerçek veriyi al
         if (frame.isPadded) {
             allBits += frame.data.substr(0, frame.frameSize); //unstuffed datayı ekliyoruz
         } else {

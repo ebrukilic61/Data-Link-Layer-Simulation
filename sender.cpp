@@ -112,7 +112,6 @@ bool Sender::readFileAndCreateFrames(const string &fileName) {
 }
 
 string Sender::transformFrame(const Frame & fr){
-    //Frame fr;
     Sender sender;
     string frame = fr.addressSend+fr.frameNumber+fr.result+FRAME_FLAG+fr.crc; //sender kendi adresini gönderecek
     cout<<"RESULT:"<<fr.result<<endl;
@@ -134,7 +133,6 @@ void Sender::sendFrame(int fNum, Receiver& receiver) {
 
     // %20 ihtimal
     bool bilincliHata = (rand() % 100) < 20;
-    //bool bilincliHata = true;
     bool ackReceived = false;
     int gonderimCount = 1;
     bool ilkDeneme = true;
@@ -150,15 +148,29 @@ void Sender::sendFrame(int fNum, Receiver& receiver) {
     cout << "CRC kodu hesaplandi: " << crcKodu << endl;
     cout << "fnum: "<<fNum<<endl;
 
-    //bool ackReceived = false;
-    //int gonderimCount = 1;
-    
     while (!ackReceived) { //ack gelene kadar devam eder gönderim
         cout << "\nFrame " << fNum << " gonderim denemesi: " << gonderimCount << endl;
         
         cout << "Frame " << fNum << " gonderiliyor..." << endl;
         this_thread::sleep_for(chrono::milliseconds(200));
-        
+
+        //%20'lik hata olusturma görevi:
+        string gonderilecekVeri = originalData;
+        cout << "Original veri: " << originalData << endl;
+        if (ilkDeneme && bilincliHata) {
+            cout << "UYARI: Frame " << fNum << " BILEREK HATALI GONDERILIYOR (bit bozma)" << endl;
+            //int pos = rand() % gonderilecekVeri.size()-1;
+            int pos=25;
+            cout << "pos: " << pos << endl;
+            gonderilecekVeri[pos] = (gonderilecekVeri[pos] == '0') ? '1' : '0';
+            cout << "Gonderilecek bozulmus veri: " << gonderilecekVeri << endl;
+        }
+
+        Frame tempFrame = frames[fNum];
+        tempFrame.data = gonderilecekVeri;
+        tempFrame.crc = crcKodu;
+        tempFrame.fNum = fNum;
+
         // %10 olasılıkla frame iletim sırasında kaybolabilir
         int random = rand() % 100;
         bool frameLost = (random < 10);
@@ -246,9 +258,9 @@ void Sender::sendAllFrames(Receiver& receiver) {
 
     ProtocolUtils pr;
     string checksum = pr.calculateChecksum(frames, frames.size());
-    
+    string chk = pr.applyBitStuffing(checksum);
     Frame checksumFrame;
-    checksumFrame.checksum = checksum;
+    checksumFrame.checksum = chk;
     //checksumFrame.result = checksum;  // checksum için bit stuffing yapmadım
     checksumFrame.frameSize = checksum.length();
     checksumFrame.addressSend = "0000001";
@@ -256,12 +268,15 @@ void Sender::sendAllFrames(Receiver& receiver) {
     checksumFrame.frameNumber = "0";
     checksumFrame.fNum = frames.size();
 
-    string recChecksumFrame = checksumFrame.addressSend + checksumFrame.frameNumber + checksumFrame.checksum;
+    //checksuma bit stuffing uygulanmalı
+    string stuffedChk = pr.applyBitStuffing(checksumFrame.checksum);
+    cout<<"bit stuffed checksum: "<<stuffedChk<<endl;
 
+    string recChecksumFrame = FRAME_FLAG + checksumFrame.addressSend + checksumFrame.frameNumber + stuffedChk + FRAME_FLAG;
     bool recChkTrue = receiver.receiveChecksumFrame(recChecksumFrame);
 
     if(recChkTrue){
-        cout << "Checksum dogru, Veri gonderimi basariyla sona erdi." << endl;
+        cout << "Checksum dogru, veri gonderimi basariyla sona erdi." << endl;
     }else{
         cout<<"Cheksum yanlis, veri gonderimi bastan yapilacak"<<endl;
     }
@@ -284,15 +299,6 @@ int main() {
         }
         sender.sendAllFrames(r);
     }
-
-    /*
-    string chksm;
-    chksm = pr.calculateChecksum(sender.frames, sender.frames.size());
-
-    cout <<"deneme crc: "<<sender.frames[0].crc<<endl;
-    
-    cout<<"deneme checksum sonucu: "<<chksm<<endl;
-    */
 
     return 0;
 }
