@@ -1,27 +1,88 @@
-cmake_minimum_required(VERSION 3.10)
-project(viba_project)
+cmake_minimum_required(VERSION 3.16)
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+project(deneme VERSION 0.1 LANGUAGES CXX)
 
-# Kaynak dosyalarını ekleyin
-set(SOURCES
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+
+set(PROJECT_SOURCES
     main.cpp
-    sender.cpp
-    receiver.cpp
-    protocol_utils.cpp
+        sender.cpp
+        receiver.cpp
+        protocol_utils.cpp
+        mainwindow.cpp
+        simulationpage.cpp
+        launchpage.cpp
+        fileuploadpage.cpp
+        mainwindow.h
+        mainwindow.ui
+        sender.h
+        receiver.h
+        protocol_utils.h
+        simulationpage.h
+        launchpage.h
+        fileuploadpage.h
 )
 
-# Header dosyalarını ekleyin
-set(HEADERS
-    sender.h
-    receiver.h
-    protocol_utils.h
+if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+    qt_add_executable(deneme
+        MANUAL_FINALIZATION
+        ${PROJECT_SOURCES}
+        launchpage.h
+        launchpage.cpp
+        fileuploadpage.h
+        fileuploadpage.cpp
+        simulationpage.h
+        simulationpage.cpp
+    )
+# Define target properties for Android with Qt 6 as:
+#    set_property(TARGET deneme APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
+#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
+# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
+else()
+    if(ANDROID)
+        add_library(deneme SHARED
+            ${PROJECT_SOURCES}
+        )
+# Define properties for Android with Qt 5 after find_package() calls as:
+#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
+    else()
+        add_executable(deneme
+            ${PROJECT_SOURCES}
+        )
+    endif()
+endif()
+
+target_link_libraries(deneme PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+
+# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
+# If you are developing for iOS or macOS you should consider setting an
+# explicit, fixed bundle identifier manually though.
+if(${QT_VERSION} VERSION_LESS 6.1.0)
+  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.deneme)
+endif()
+set_target_properties(deneme PROPERTIES
+    ${BUNDLE_ID_OPTION}
+    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    MACOSX_BUNDLE TRUE
+    WIN32_EXECUTABLE TRUE
 )
 
-# Çalıştırılabilir dosya oluştur
-add_executable(sender ${SOURCES} ${HEADERS})
+include(GNUInstallDirs)
+install(TARGETS deneme
+    BUNDLE DESTINATION .
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
 
-# Arayüz kütüphaneleri
-# find_package(Qt5 COMPONENTS Widgets REQUIRED)
-# target_link_libraries(sender Qt5::Widgets)
+if(QT_VERSION_MAJOR EQUAL 6)
+    qt_finalize_executable(deneme)
+endif()

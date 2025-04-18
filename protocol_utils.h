@@ -20,11 +20,15 @@ extern const string NACK;
 
 struct Frame {
     string data;
-    string crc;
-    int frameNumber;
+    string crc; // data ve crc arasına flag konulmuş
+    string frameNumber; // 0 veya 1
+    int fNum;
     string checksum;
-    int frameSize; //burada orijinal sizedan bahsediyorum, padding durumunu gözetmek için yazıldı
+    size_t frameSize; //burada orijinal sizedan bahsediyorum, padding durumunu gözetmek için yazıldı -> sadece crc hesaplamak için
     bool isPadded;
+    string result;
+    string addressRec; //receiver adresi -> gerek yok, tek yönlü iletişim yapıyoruz, bunu çıkarabiliriz
+    string addressSend; //sender adresi
 };
 
 class ProtocolUtils {

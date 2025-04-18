@@ -1,0 +1,4 @@
+# ninja log v6
+9	485	7664444533272488	CMakeFiles/sender.dir/receiver.cpp.obj	be44d74d4081fbb4
+6	567	7664444533272488	CMakeFiles/sender.dir/sender.cpp.obj	2fa2d8729fd24c7d
+13	670	7664444533272488	CMakeFiles/sender.dir/protocol_utils.cpp.obj	170fb9c9246281f4

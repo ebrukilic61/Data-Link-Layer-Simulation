@@ -1,0 +1,3 @@
+C:/Users/Lenovo/Desktop/viba_proje/build/CMakeFiles/sender.dir
+C:/Users/Lenovo/Desktop/viba_proje/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/Lenovo/Desktop/viba_proje/build/CMakeFiles/ZERO_CHECK.dir

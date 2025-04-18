@@ -70,7 +70,11 @@
     "format": "cpp",
     "fstream": "cpp",
     "initializer_list": "cpp",
-    "span": "cpp"
+    "span": "cpp",
+    "vector": "cpp",
+    "filesystem": "cpp",
+    "xstring": "cpp",
+    "xutility": "cpp"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }

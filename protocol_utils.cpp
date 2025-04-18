@@ -13,7 +13,7 @@
 #include <iomanip>
 #include <random>
 #define CRC_POLY "10001000000100001" // x^16 + x^12 + x^5 + 1
-//gui kütüphaneleri de gelecek
+#define FRAME_FLAG "01111110" 
 using namespace std;
 
 // hata simülasyonu olasılıkları
@@ -48,6 +48,7 @@ string ProtocolUtils::xorHesapla(string a, string b)
 string ProtocolUtils::crcHesapla(string data, string key)
 {
     int keyLen = key.length();
+    cout <<"crchesapla:data:"<<data<<endl;
     int i;
     string temp = data + string(keyLen-1,'0'); //key uzunluğu kadar 0 eklendi -> temp = bölünen data değeri + eklenen 0'lar
 
@@ -62,6 +63,7 @@ string ProtocolUtils::crcHesapla(string data, string key)
             rem += temp[i];
         }
     }
+    cout<<"crchesapla return sonucu:"<<rem<<endl;
     return rem;
 }
 
@@ -87,37 +89,6 @@ string ProtocolUtils::binaryAddStrings(const string& a, const string& b) {
 
     return result;
 }
-
-/*
-string ProtocolUtils::calculateChecksum(vector<Frame>fr,int frmNum){
-    int i;
-    int n = 8; //8 bit olmalı demişti hoca
-    string concat_data = "";
-    string sum = "00000000";
-    
-    for(int i = 0; i<frmNum-1;i++){
-        concat_data += fr[i].crc;
-    }
-    concat_data += fr[frmNum-1].crc.substr(0,fr[frmNum-1].frameSize);
-
-    //concat olan crc kodunu 8 bitlik parçalara bölük toplama işlemi:
-    
-    for(size_t i = 0; i<concat_data.size();i+=8){
-        string chunk = concat_data.substr(i,8);
-        if(chunk.length()<8){
-            chunk = string(8 - chunk.length(), '0') + chunk; //padding gerekiyorsa başa (msb) 0 eklenir
-        }
-        sum = binaryAddStrings(sum, chunk);
-    }
-
-    sum = binaryAddStrings(sum, "00000001");
-
-    if(sum.length()>8){
-        sum = sum.substr(sum.length()-8,8);
-    }
-    return sum;
-}
-*/
 
 string ProtocolUtils::calculateChecksum(vector<Frame> fr, int frmNum) {
     int n = 8;  // 8-bitlik parça
@@ -171,25 +142,22 @@ string ProtocolUtils::binaryToHex(string binary) {
     return ss.str();
 }
 
-// bit stuffing uygulama -> stuffing işlemleri için ai yardım etti, kontrol etmem lazım
-string ProtocolUtils::applyBitStuffing(const string& data) {
-    string result = "";
-    int consecutive_bit = 0; //ardışık bitler için
-    
-    for(char bit : data) {
-        result += bit;
-        if(bit == '1') {
-            consecutive_bit++;
-            if(consecutive_bit == 5) {
-                result += '0';
-                consecutive_bit = 0;
+string ProtocolUtils::applyBitStuffing(const std::string& data) {
+    std::string stuffedData;
+    int consecutiveOnes = 0;
+    for (char bit : data) {
+        stuffedData.push_back(bit);
+        if (bit == '1') {
+            consecutiveOnes++;
+            if (consecutiveOnes == 5) {
+                stuffedData.push_back('0'); // Stuff a '0'
+                consecutiveOnes = 0;        // Reset count
             }
         } else {
-            consecutive_bit = 0;
+            consecutiveOnes = 0;
         }
     }
-    
-    return result;
+    return stuffedData;
 }
 
 // bit stuffing kaldırma

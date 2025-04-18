@@ -16,6 +16,8 @@ public:
     //void sendFrame(const string& frameData, int frameNumber); //stop and wait protocolü
     void sendFrame(int frameNumber, Receiver& receiver);
     void sendAllFrames(Receiver& receiver);
+    string transformFrame(const Frame& frameData);
+
     //bool waitForACK(int frameNumber);
     //void simulateFrameTransmission(int frameNumber);
     vector<Frame> frames;

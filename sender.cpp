@@ -16,87 +16,147 @@ using namespace std;
 Sender::Sender() : allFramesSent(false), currentFrameIndex(0) {}
 
 bool Sender::readFileAndCreateFrames(const string &fileName) {
-    int i;
-    ifstream file;
-    frames.clear();
-    string currentFrame;  
-    char byte;
-
-    file.open(fileName.c_str(), ios::binary); 
-
+    ProtocolUtils pr;
+    ifstream file(fileName.c_str(), ios::binary);
     if (!file) {
         cerr << "Dosya acilamadi!" << endl;
         return false;
-    }  
+    }
+
+    string bitStream;
+    char byte;
 
     while (file.read(&byte, 1)) {
-        bitset<8> bits(byte); 
-        for (i = 7; i >= 0; i--) {
-            currentFrame.push_back(bits[i] ? '1' : '0');
-        }
-
-        if (currentFrame.size() >= FRAME_SIZE) {
-            Frame f;
-            f.data = currentFrame.substr(0, FRAME_SIZE);
-            f.frameSize = FRAME_SIZE;
-            f.isPadded = false;
-            frames.push_back(f);
-            currentFrame = currentFrame.substr(FRAME_SIZE);
+        bitset<8> bits(byte);
+        for (int i = 7; i >= 0; i--) {
+            bitStream.push_back(bits[i] ? '1' : '0');
         }
     }
-    
-    if (!currentFrame.empty()) { // son frame tamamlanmamışsa
+
+    int frameCounter = 0;
+    string carryOverBits;
+
+    while (bitStream.length() >= 100) {
+        string rawData = carryOverBits + bitStream.substr(0, 100 - carryOverBits.size());
+        bitStream = bitStream.substr(100 - carryOverBits.size());
+
         Frame f;
-        f.frameSize = currentFrame.size();
-        f.isPadded = true;
-        while (currentFrame.size() < FRAME_SIZE) {
-            currentFrame.push_back('0'); // eksik kalan bitler 0 ile tamamlanır
+        f.data = rawData;
+        f.frameSize = 100;
+        f.isPadded = false;
+        f.frameNumber = to_string(frameCounter % 2);
+        //cout<<"frame num: "<<frameCounter<<endl;
+
+        // Bit stuffing
+        string stuffedData = pr.applyBitStuffing(rawData);
+        f.result = stuffedData;
+
+        // Eğer stuffedData 100'den büyükse taşan bitleri al
+        if (stuffedData.length() > 100) {
+            carryOverBits = stuffedData.substr(100);
+            f.result = stuffedData.substr(0, 100);  // Sadece 100 bitlik kısmı bu frame’e koy
+        } else {
+            carryOverBits = "";
         }
-        
-        f.data = currentFrame;
+
+        f.addressSend = "0000001"; // örnek sender adresi
+        f.addressRec = "0000010";  // örnek receiver adresi
+
+        f.crc = pr.crcHesapla(f.result, CRC_POLY);
+
+        cout<<"raw data: "<<f.data<<endl;
+        cout<<"bit stuffed data: "<<f.result<<endl;
+        cout<<"frame size"<<f.frameSize<<endl;
+
+        frames.push_back(f);
+        f.fNum = frameCounter;
+        frameCounter++;
+    }
+
+    // kalan bit varsa son frame oluşturulur
+    if (!bitStream.empty()) { // || !carryOverBits.empty()
+        string stuffedData;
+        //string rawData = carryOverBits + bitStream;
+        Frame f;
+        f.isPadded = true;
+        //while (bitStream.size() < 100) bitStream.push_back('0');
+        f.data = bitStream;
+        f.addressSend = "0000001";
+        f.addressRec = "0000010";
+        f.frameNumber = to_string(frameCounter % 2);
+        f.result = pr.applyBitStuffing(f.data);
+        if (f.result.length() > 100) {
+            carryOverBits = f.result.substr(100);
+            f.result = f.result.substr(0, 100);
+        } else {
+            carryOverBits = "";
+        }
+        stuffedData = carryOverBits + bitStream;
+        f.frameSize = f.result.size();
+        while (stuffedData.size() < FRAME_SIZE) {
+            stuffedData.push_back('0'); // eksik kalan bitler 0 ile tamamlanır
+        }
+        cout <<"frame_data:"<<f.result.substr(0, f.frameSize)<<endl;
+        f.crc = pr.crcHesapla(f.result.substr(0, f.frameSize), CRC_POLY);
+        cout<<"raw data: "<<f.data<<endl;
+        cout<<"bit stuffed data: "<<f.result<<endl;
+        cout<<"frame size: "<<f.result.size() <<endl;
+        cout<<"carry over bits: "<<carryOverBits<<endl;
+        f.fNum = frameCounter;
         frames.push_back(f);
     }
 
-    cout << "Toplam " << frames.size() << " frame olusturuldu." << endl;
-    for (i = 0; i < frames.size(); i++) {
-        cout << "Frame " << i << " hazirlandi. Boyut: " << frames[i].frameSize << " bit" << endl;
-    }
-
     file.close();
+    cout << "Toplam " << frames.size() << " frame olusturuldu." << endl;
     return true;
 }
 
-void Sender::sendFrame(int frameNumber, Receiver& receiver) {
-    if (frameNumber >= frames.size()) {
-        cerr << "Hata: Geçersiz frame numarası!" << endl;
+string Sender::transformFrame(const Frame & fr){
+    //Frame fr;
+    Sender sender;
+    string frame = fr.addressSend+fr.frameNumber+fr.result+FRAME_FLAG+fr.crc; //sender kendi adresini gönderecek
+    cout<<"RESULT:"<<fr.result<<endl;
+    cout<<"FRAME_FLAG:"<<FRAME_FLAG<<endl;
+    cout<<"CRC:"<<fr.crc<<endl;
+    return frame;
+}
+
+void Sender::sendFrame(int fNum, Receiver& receiver) {
+    if (fNum >= frames.size()) {
+        cerr << "Hata: Gecersiz frame numarasi!" << endl;
         return;
     }
     
     ProtocolUtils pr;
-    string crcKodu;
-    string frameData = frames[frameNumber].data;
-    
-    // CRC kodunu hesapla ve frame'e ekle
-    if(frames[frameNumber].isPadded == true) {
-        crcKodu = pr.crcHesapla(frameData.substr(0, frames[frameNumber].frameSize), CRC_POLY);
-        cout << "Padded frame boyutu: " << frames[frameNumber].frameSize << " | CRC kodu: " << crcKodu << endl;
-    } else {
-        crcKodu = pr.crcHesapla(frameData, CRC_POLY);
-    }
+    string originalData = frames[fNum].result;
+    bool isPadded = frames[fNum].isPadded;
+    int actualSize = frames[fNum].frameSize;
 
-    frames[frameNumber].crc = crcKodu;
-    frames[frameNumber].frameNumber = frameNumber;
-    
-    cout << "\n--- Frame " << frameNumber << " icin gonderim islemi basladi ---" << endl;
-    cout << "CRC kodu hesaplandi: " << crcKodu << endl;
-    
+    // Hata oluşturulsun mu? (örnek: %20 ihtimal)
+    //bool bilincliHata = (rand() % 100) < 20;
+    bool bilincliHata = true;
     bool ackReceived = false;
     int gonderimCount = 1;
+    bool ilkDeneme = true;
+    string crcKodu;
+
+    if (isPadded) {
+        crcKodu = pr.crcHesapla(originalData.substr(0, actualSize), CRC_POLY);
+    } else {
+        crcKodu = pr.crcHesapla(originalData, CRC_POLY);
+    }
+    
+    cout << "\n--- Frame " << fNum << " icin gonderim islemi basladi ---" << endl;
+    cout << "CRC kodu hesaplandi: " << crcKodu << endl;
+    cout << "fnum: "<<fNum<<endl;
+
+    //bool ackReceived = false;
+    //int gonderimCount = 1;
     
     while (!ackReceived) { //ack gelene kadar devam eder gönderim
-        cout << "\nFrame " << frameNumber << " gonderim denemesi: " << gonderimCount << endl;
+        cout << "\nFrame " << fNum << " gonderim denemesi: " << gonderimCount << endl;
         
-        cout << "Frame " << frameNumber << " gonderiliyor..." << endl;
+        cout << "Frame " << fNum << " gonderiliyor..." << endl;
         this_thread::sleep_for(chrono::milliseconds(200));
         
         // %10 olasılıkla frame iletim sırasında kaybolabilir
@@ -106,12 +166,11 @@ void Sender::sendFrame(int frameNumber, Receiver& receiver) {
         bool receiverGotFrame = false;
         
         if (frameLost) {
-            cout << "HATA: Frame " << frameNumber << " iletimde KAYBOLDU" << endl;
+            cout << "HATA: Frame " << fNum << " iletimde KAYBOLDU" << endl;
         } else {
-            cout << "Frame " << frameNumber << " basariyla karsi tarafa iletildi." << endl;
-            
-            // frame başarıyla iletildi, receiver'dan cevap al
-            receiverGotFrame = receiver.receiveFrame(frames[frameNumber]);
+            string transformedData = transformFrame(frames[fNum]);
+            cout << "Frame " << fNum << " basariyla karsi tarafa iletildi." << endl;            
+            receiverGotFrame = receiver.receiveFrame(transformedData); //sadece data ->transformFrame
         }
         
         // ACK/NACK alınması simülasyonu
@@ -131,7 +190,7 @@ void Sender::sendFrame(int frameNumber, Receiver& receiver) {
             bool ackLost = (random < 15);
             
             if (ackLost) {
-                cout << "TIMEOUT: ACK/NACK yolda KAYBOLDU!" << endl;
+                cout << "ACK/NACK yolda KAYBOLDU!" << endl;
                 ackReceived = false;
             } else {
                 // ACK/NACK başarıyla alındı
@@ -149,13 +208,13 @@ void Sender::sendFrame(int frameNumber, Receiver& receiver) {
         }
         
         if (!ackReceived) {
-            cout << "Frame " << frameNumber << " yeniden gonderilecek..." << endl;
+            cout << "Frame " << fNum << " yeniden gonderilecek..." << endl;
             this_thread::sleep_for(chrono::milliseconds(500)); // Tekrar gönderim öncesi bekleme
             gonderimCount++;
         }
     }
     
-    cout << "Frame " << frameNumber << " basariyla gonderildi ve onaylandi." << endl;
+    cout << "Frame " << fNum << " basariyla gonderildi ve onaylandi." << endl;
     cout << "Toplam gonderim denemesi: " << gonderimCount << endl;
 }
 
@@ -203,16 +262,16 @@ int main() {
         for(i=0;i<sender.frames.size();i++){
             //sender.sendFrame(i, r);
         }
-
         sender.sendAllFrames(r);
     }
 
+    /*
     string chksm;
     chksm = pr.calculateChecksum(sender.frames, sender.frames.size());
 
     cout <<"deneme crc: "<<sender.frames[0].crc<<endl;
     
     cout<<"deneme checksum sonucu: "<<chksm<<endl;
-
+    */
     return 0;
 }
