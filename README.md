@@ -9,6 +9,7 @@ gerçekleştirilmekte olup, tüm bu işlemler için grafiksel bir arayüz (GUI) 
 edilebilir bir şekilde sunulmaktadır.  
 
 Arayüz:
+
 ![image](https://github.com/user-attachments/assets/c27299d8-242f-4d30-980f-11917d60e519)
 ![image](https://github.com/user-attachments/assets/c7e1f0a6-2b3a-4d24-8664-ec3b28709d3f)
 
