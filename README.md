@@ -2,12 +2,6 @@
 
 In this assignment, various techniques such as framing, CRC (Cyclic Redundancy Check), bit stuffing, checksum, and error simulation are implemented to simulate errors that may occur during data transmission at the Data Link Layer, which is the 2nd layer of the OSI reference model. On the receiver side, the accuracy of the transmitted data is verified, erroneous packets are detected, and the retransmission process is triggered accordingly. Data transmission is carried out using the Stop & Wait protocol, and all these operations are presented through a graphical user interface (GUI) in a visual and traceable manner.
 
-## Contributors
-
-- [sude elitok](https://github.com/sudelitok)
-- [rumeysa nur yasav](https://github.com/rmysysv)
-- [ebru kılıç](https://github.com/ebrukilic61)
-
 Login Screen:
 ![image](https://github.com/user-attachments/assets/2523327a-636d-4203-bd98-d3afd9cffef1)
 Simulation Screen:
